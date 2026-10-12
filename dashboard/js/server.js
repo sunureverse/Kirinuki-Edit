@@ -3,9 +3,9 @@
    대시보드와 서버의 수명을 맞춘다. 페이지가 열려 있는 동안 핑을 보내고, 닫힐
    때 작별 신호를 보낸다. 서버는 붙어 있는 페이지가 없어지면 스스로 내려간다.
 
-   서버가 있으면 작업을 jobs/ 폴더에 파일로 떨어뜨려 Claude Code가 집어가게
+   서버가 있으면 작업을 jobs/ 폴더에 파일로 떨어뜨려 Codex가 읽게
    하고, 없으면(정적 파일만 서비스 중이면) 예전처럼 클립보드로 넘긴다. 어느
-   쪽이든 클로드 API는 부르지 않는다. */
+   쪽이든 모델 API는 직접 부르지 않는다. */
 (function (D) {
   'use strict';
 
@@ -15,7 +15,8 @@
     id: 'dash-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now().toString(36),
     interval: 3000,
     timer: null,
-    warned: false
+    warned: false,
+    submitting: false
   };
 
   function setBadge() {
@@ -108,20 +109,84 @@
   };
 
   /* 작업 넘기기. 서버가 있으면 파일로, 없으면 클립보드로. */
+  function prepareMedia(job, pid) {
+    var keys = job.task === 'style.analyze' ? ['analyze.src', 'analyze.edited']
+      : job.task === 'style.apply' ? ['apply.target', 'apply.assets'] : [];
+    var paths = [];
+    // 브라우저의 File 이름은 서버 경로가 아니다. 파일을 먼저 저장한 후 매핑한다.
+    return keys.reduce(function (chain, key) {
+      return chain.then(function () {
+        return D.flatten(D.state.ai.drops[key] || []).reduce(function (uploads, node) {
+          return uploads.then(function () {
+            var file = D.fileOf(node);
+            if (!file) {
+              if (!node.serverPath && !/^(\/|[A-Za-z]:[\\/])/.test(node.path || '')) {
+                throw new Error(node.name + ' 파일을 다시 넣어주세요. 브라우저 파일을 읽을 수 없습니다.');
+              }
+              paths.push({ group: key, original: node.path, path: node.serverPath || node.path });
+              return;
+            }
+            return fetch('/api/media/upload?project=' + encodeURIComponent(pid)
+              + '&name=' + encodeURIComponent(file.name), { method: 'POST', body: file })
+              .then(function (r) {
+                if (!r.ok) throw new Error(node.name + ' 업로드 실패 (HTTP ' + r.status + ')');
+                return r.json();
+              }).then(function (r) {
+                if (!r.ok) throw new Error(r.error || '파일 저장 실패');
+                node.serverPath = r.path;
+                paths.push({ group: key, original: node.path, path: r.path });
+              });
+          });
+        }, Promise.resolve());
+      });
+    }, Promise.resolve()).then(function () { job.mediaPaths = paths; });
+  }
+
+  function showCodexRequest(kind, request) {
+    var box = D.el('div');
+    box.appendChild(D.el('p', { text: '아래 요청을 이 저장소를 연 Codex 채팅에 붙여넣으세요. 편집이 끝나면 프로젝트를 다시 여세요.' }));
+    var text = D.el('textarea', { class: 'inp', rows: '9', readonly: 'readonly' });
+    text.value = request;
+    box.appendChild(text);
+    D.modal.open({ title: kind + ' · Codex에 맡기기', body: box, buttons: [
+      { label: '요청 복사', class: 'btn-primary', onClick: function () { D.copy(request, 'Codex 편집 요청'); return false; } },
+      { label: '닫기' }
+    ] });
+  }
+
   S.submit = function (kind, prompt, job) {
     if (!S.online) {
-      D.copy(prompt, kind + ' 프롬프트');
-      D.info(kind + ' 작업을 클립보드로 넘겼습니다. Claude Code에 붙여넣으면 실행됩니다.', 'handoff');
-      D.toast(kind + ' 작업 복사됨 - 붙여넣으세요');
-      return;
+      var offline = '이 저장소의 AGENTS.md와 docs/codex-editing.md에 따라 편집해 주세요.\n'
+        + '영상은 별도로 첨부하거나 실제 경로를 알려주세요.\n\n' + prompt
+        + '\n\n작업 JSON:\n' + JSON.stringify(job, null, 2);
+      showCodexRequest(kind, offline);
+      D.warn('서버가 없어 영상은 저장되지 않았습니다. Codex에 영상도 전달하세요.', 'handoff');
+      return Promise.resolve();
     }
-    post('/api/job', { kind: kind, prompt: prompt, job: job }).then(function (r) {
-      D.info(kind + ' 작업을 파일로 넘겼습니다: ' + r.job, 'handoff');
-      D.toast(kind + ' 작업 저장됨 - ' + r.name);
+    if (S.submitting) {
+      D.toast('이미 작업을 준비하고 있습니다. 잠시 기다려주세요.');
+      return Promise.resolve();
+    }
+    S.submitting = true;
+    var pid;
+    D.toast('Codex 작업 준비 중 · 영상 저장');
+    return D.Projects.save({ force: true, thumb: false }).then(function () {
+      pid = D.state.project.id;
+      job.project = pid;
+      return prepareMedia(job, pid);
+    }).then(function () {
+      if (D.state.project.id !== pid) throw new Error('프로젝트가 바뀌었습니다. 원래 프로젝트에서 다시 요청하세요.');
+      // 업로드 경로도 프로젝트에 남겨 다음에 열어도 사용할 수 있게 한다.
+      return D.Projects.save({ force: true, thumb: false });
+    }).then(function () {
+      return post('/api/job', { kind: kind, prompt: prompt, job: job });
+    }).then(function (r) {
+      D.info(kind + ' 작업 준비 완료: ' + r.job + ' · 요청을 Codex 채팅에 붙여넣으세요.', 'handoff');
+      showCodexRequest(kind, r.request);
     }).catch(function (e) {
-      D.error('작업 저장 실패(' + e.message + '). 클립보드로 넘깁니다.', 'handoff');
-      D.copy(prompt, kind + ' 프롬프트');
-    });
+      D.error('Codex 작업 준비 실패: ' + e.message, 'handoff');
+      D.toast('작업 준비 실패 · 로그를 확인하세요');
+    }).finally(function () { S.submitting = false; });
   };
 
   /* 스타일은 프로젝트가 아니라 대시보드 전체가 쓰는 것이라 서버의

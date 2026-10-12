@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """낱말 단위 전사 (2026-09-29 지시: "전사 다시 돌려서 앞으로는 단어 단위로 타임스탬프 찍어").
 
-    ALLOW_AI=1 python tools/transcribe_words.py <편 폴더> [wav=src_loud.wav]
+    ALLOW_AI=1 python tools/transcribe_words.py <편 폴더> [wav=src_loud.wav] [--language auto|ko|ja|en]
     python tools/transcribe_words.py <편 폴더> --from word_level_loud.json     # 이미 있는 전사에 2단계만 (AI 안 씀)
 
 -> <편 폴더>/word_level_words.json (word_level_*.json 과 같은 꼴: [{start,end,text,words:[{start,end,word}]}])
@@ -16,17 +16,24 @@
    (무성 마찰음 ㅅ·ㅆ·ㅎ 은 레벨에 안 보여서 - CLAUDE.md 컷 규칙 3 - 조금 넘는 것은 둔다). 0.05초는 여유로 남긴다.
 재전사는 비싸다 (CLAUDE.md). ai_budget 이 막아 두었다 - 사용자 허락을 받고 ALLOW_AI=1 로 돌린다.
 """
+import argparse
 import io, json, os, re, sys, wave
 
-FROM = sys.argv[sys.argv.index("--from") + 1] if "--from" in sys.argv else None
+parser = argparse.ArgumentParser(description="한국어·일본어·영어 낱말 전사 (Whisper large-v3)")
+parser.add_argument("work", help="편 폴더")
+parser.add_argument("wav", nargs="?", default="src_loud.wav", help="편 폴더 안의 음성 WAV")
+parser.add_argument("--from", dest="from_file", help="기존 전사를 재사용 (모델 호출 없음)")
+parser.add_argument("--language", choices=("auto", "ko", "ja", "en"), default="auto",
+                    help="원본 음성 언어. 기본 auto는 자동 감지이며 번역하지 않습니다")
+args = parser.parse_args()
+FROM = args.from_file
 if not FROM and os.environ.get("ALLOW_AI") != "1":
     sys.exit("재전사는 막혀 있다 (CLAUDE.md: 재전사 기본 0회). 사용자 허락을 받은 뒤 ALLOW_AI=1 을 붙인다.")
 
 import numpy as np
 
-work = os.path.abspath(sys.argv[1])
-rest = [a for a in sys.argv[2:] if a != "--from" and a != FROM]
-wav = rest[0] if rest else "src_loud.wav"
+work = os.path.abspath(args.work)
+wav = args.wav
 os.chdir(work)
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS", "1")
@@ -71,9 +78,12 @@ if FROM:
     out = json.load(io.open(FROM, encoding="utf-8"))
 else:
     from faster_whisper import WhisperModel
-    m = WhisperModel("large-v3", device="cpu", compute_type="int8")
-    segments, _ = m.transcribe(wav, language="ko", word_timestamps=True, vad_filter=False,
-                               beam_size=5, condition_on_previous_text=False)
+    m = WhisperModel("large-v3", device="cpu", compute_type="int8", cpu_threads=4)
+    language = None if args.language == "auto" else args.language
+    segments, info = m.transcribe(wav, language=language, task="transcribe", multilingual=language is None,
+                                 word_timestamps=True, vad_filter=False,
+                                 beam_size=5, condition_on_previous_text=False)
+    print("음성 언어: %s (감지 확률 %.1f%%)" % (info.language, info.language_probability * 100))
     out = []
     for s in segments:
         out.append({"start": round(s.start, 2), "end": round(s.end, 2), "text": s.text.strip(),
@@ -149,6 +159,10 @@ moved, total = 0, 0.0
 for s in out:
     ws = s["words"]
     if not ws:
+        continue
+    # 아래 보정은 한글 음절 수에 맞춘 방식이다. 일본어·영어·혼합 구간에는
+    # 적용하지 않고 모델의 낱말 시각을 유지한다.
+    if not all(re.search(u"[가-힣]", w["word"]) for w in ws):
         continue
     a, b = ws[0]["start"], ws[-1]["end"]
     hit = [(x, y) for x, y in CH if y > a and x < b]

@@ -2,8 +2,7 @@
 """편집 관리 대시보드용 로컬 서버.
 
 정적 파일을 서비스하면서, 대시보드가 만든 작업을 디스크에 떨어뜨린다. 그래야
-사용자가 프롬프트를 복사해 붙여넣지 않아도 Claude Code가 jobs/ 폴더에서 작업을
-집어갈 수 있다. 클로드 API는 쓰지 않는다.
+Codex가 JSON과 지시문을 함께 읽고 작업할 수 있다. 모델 API는 직접 호출하지 않는다.
 
 렌더도 여기서 직접 돌린다 (/api/render). 손댈 것이 없는 렌더까지 사람이나
 모델을 기다릴 이유가 없다 - 대시보드가 확정한 타임라인을 프로젝트 폴더의
@@ -28,6 +27,7 @@ from urllib.parse import quote
 import threading
 import time
 import webbrowser
+import uuid
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -1618,13 +1618,30 @@ class Handler(SimpleHTTPRequestHandler):
             kind = _slug(d.get("kind"), "job")
             job = d.get("job")
             prompt = d.get("prompt") or ""
-            if job is None:
-                return self._json(400, {"ok": False, "error": "job 없음"})
+            if not isinstance(job, dict):
+                return self._json(400, {"ok": False, "error": "job은 JSON 객체여야 합니다"})
+            if not isinstance(prompt, str):
+                return self._json(400, {"ok": False, "error": "prompt는 문자열이어야 합니다"})
+            pid = job.get("project")
+            pd = self._pdir(pid) if isinstance(pid, str) else None
+            if not pd or not os.path.isfile(os.path.join(pd, "project.json")):
+                return self._json(400, {"ok": False, "error": "프로젝트를 먼저 저장하세요"})
             os.makedirs(self.jobs_dir, exist_ok=True)
             stamp = time.strftime("%Y%m%d_%H%M%S")
-            base = "%s_%s" % (stamp, kind)
+            base = "%s_%s_%s" % (stamp, kind, uuid.uuid4().hex[:8])
             jp = os.path.join(self.jobs_dir, base + ".json")
             pp = os.path.join(self.jobs_dir, base + ".md")
+            request = (
+                "이 저장소의 AGENTS.md와 docs/codex-editing.md를 읽고 편집 작업을 수행해 주세요.\n"
+                "작업 JSON: " + os.path.abspath(jp) + "\n"
+                "작업 지시문: " + os.path.abspath(pp) + "\n"
+                "프로젝트: " + os.path.abspath(os.path.join(pd, "project.json")) + "\n"
+                "JSON의 mediaPaths에서 실제 영상 경로를 확인하세요. 없는 영상이나 자막을 추측하지 마세요.\n"
+                "소스 코드는 수정하지 말고 편집 데이터와 미리보기만 갱신하세요. "
+                "완성 영상은 사용자가 렌더를 요청할 때만 만드세요."
+            )
+            job["agent"] = "codex"
+            job["projectFile"] = os.path.abspath(os.path.join(pd, "project.json"))
             with open(jp, "w", encoding="utf-8") as f:
                 json.dump(job, f, ensure_ascii=False, indent=2)
             with open(pp, "w", encoding="utf-8") as f:
@@ -1635,6 +1652,8 @@ class Handler(SimpleHTTPRequestHandler):
                 "job": os.path.abspath(jp),
                 "prompt": os.path.abspath(pp),
                 "name": base,
+                "agent": "codex",
+                "request": request,
             })
 
         return self._json(404, {"ok": False, "error": "없는 경로"})

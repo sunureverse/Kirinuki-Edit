@@ -450,7 +450,7 @@
       '- 화면 잡기 · 확대 · 위치는 원본을 건드리지 않는 값으로만 둔다 (edit.json 조각 crop · camera, fx.json zoom · push) - 사용자가 사용자 편집 탭에서 '
         + '원본 클립 변형 (이동 · 확대 · 회전 - 원본에서 다시 잘라 화질 그대로) 으로 눈으로 보며 고친다. 그래서 1.5배를 1.6배로 잡았어도 되돌릴 수 있어야 한다.',
       '- 영상 위 지시 (쪽지) 의 시각은 편집 대상 원본 시각, 자리는 화면 비율 (0-1) 이다.',
-      '- 파이프라인: shortsmith CLI (편 폴더 edit.json · fx.json -> cuts -> body -> scene -> render). 한 편마다 손으로 쓰는 것은 edit.json · fx.json 뿐이다 (CLAUDE.md).'
+      '- 파이프라인: shortsmith CLI (편 폴더 edit.json · fx.json -> cuts -> body -> scene -> render). 한 편마다 손으로 쓰는 것은 edit.json · fx.json 뿐이다 (AGENTS.md · docs/codex-editing.md).'
     ].join('\n');
   }
 
@@ -481,8 +481,7 @@
   /* 주 버튼은 "AI에게 맡기는" 한 동작이다. 예전에는 모달을 띄워 프롬프트 복사 ·
      JSON 저장 · 닫기를 다시 물었는데, 그 두 개는 패널에 이미 버튼으로 나와
      있어서 같은 걸 두 번 묻는 꼴이었다. 지금은 누르는 즉시 붙여넣을 프롬프트가
-     클립보드에 올라간다 - 대시보드가 API를 호출하지 않으니 실행 자체는 Claude
-     Code가 하고, 사용자가 할 일은 붙여넣기 하나로 끝난다. */
+     Codex 전달 요청을 보여준다. 실행은 같은 저장소를 연 Codex 채팅에서 맡긴다. */
   function handOff(kind, prompt, job) {
     D.Server.submit(kind, prompt, job);
   }
