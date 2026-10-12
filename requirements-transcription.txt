@@ -1,0 +1,4 @@
+# PyAV 19 removed metadata_errors, which faster-whisper 1.2.1 requires.
+faster-whisper==1.2.1
+av==16.1.0
+numpy>=1.26,<3

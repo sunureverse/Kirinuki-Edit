@@ -13,4 +13,4 @@ For a dashboard video-editing job, read `docs/codex-editing.md`, the supplied jo
 - Audio effects (denoise, high-pass, limiter, loudnorm) need an explicit request; normal output uses fixed gain only. Use provided assets; do not fetch new creative assets without permission.
 - Report what was actually inspected, changed and validated, where the episode/project lives, and unresolved limitations. Never claim an unrun render succeeded.
 
-For application development, preserve user data and run checks appropriate to the modified behavior. The detailed legacy editing notes in `CLAUDE.md` can provide context; explicit current user instructions take precedence.
+For application development, preserve user data and run checks appropriate to the modified behavior. The detailed legacy editing notes in `docs/editing-rules.md` can provide context; explicit current user instructions take precedence.

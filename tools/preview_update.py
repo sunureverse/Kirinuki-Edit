@@ -38,7 +38,7 @@ if len(args) > 1 and "--force" not in sys.argv:
             sys.exit("멈춤: 사용자가 대시보드에서 고친 컷이 편 폴더에 안 들어갔습니다 - 먼저 python tools/apply_review.py %s %s 를 돌리고"
                      " 그 위에서 고친 뒤 다시 돌리세요 (버려도 되면 --force)" % (work, pj))
 ss = os.path.join(ROOT, "shortsmith")
-# shortsmith 는 shortsmith 폴더에서 돌린다 (Remotion 이 실행 폴더에 Chrome 을 새로 받는다 - CLAUDE.md)
+# shortsmith 는 shortsmith 폴더에서 돌린다 (Remotion 이 실행 폴더에 Chrome 을 새로 받는다 - docs/editing-rules.md)
 r = subprocess.run(["node", os.path.join(ss, "bin", "shortsmith.mjs"), "preview", work], cwd=ss)
 if r.returncode:
     sys.exit(r.returncode)

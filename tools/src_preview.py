@@ -11,7 +11,7 @@
 
 소리: 완성본과 같은 크기로 듣게 window.mkv 로 잰 고정 이득(render.mjs 와 같은 식)에 **조각 이득 중 가장 큰 값(gmax)**을
 더해 굽는다. 조각마다 이득이 달라서(이 편 0 ~ +4dB) 미리보기가 <Video volume> 로 10^((g - gmax)/20) 만큼 줄인다
-(브라우저 볼륨은 1 을 못 넘어서 올릴 수는 없다). 필터는 이득(volume=NdB) 하나뿐이다 (CLAUDE.md).
+(브라우저 볼륨은 1 을 못 넘어서 올릴 수는 없다). 필터는 이득(volume=NdB) 하나뿐이다 (docs/editing-rules.md).
 원본이 그대로면 다시 굽지 않는다 (크기 · 수정 시각 · 이득을 src_preview.json 에 적어 둔다).
 """
 import io, json, os, re, subprocess, sys

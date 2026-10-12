@@ -1,5 +1,0 @@
-{
-  "name": "shortsmith",
-  "description": "Edit vertical shorts from long recordings: waveform cuts, preset-driven React captions, GPU encoding. Requires Node 18+ and ffmpeg.",
-  "version": "0.1.0"
-}

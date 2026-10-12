@@ -971,7 +971,7 @@
   /* ---------- 이펙트 탭 (2026-10-03 사용자: "소스 / 이펙트로 탭 분리 , 이펙트 카테고리 별로 정리해서 드래그 -> 클립에 적용 가능하게") ----------
      화면 효과 = 원본 클립 (V1) 의 창에 걸리는 scene fx (lib/render.mjs windowFx · src/parts/Window.tsx 그대로) - 클립 fx [{type, ...}] ->
      tools/apply_review.py 가 fx.json "fx" 에 user 표 + 숫자 시각 (클립 시작 ~ 끝) 으로 쓴다. 색 = 클립 color 를 통째로 바꾼다 (원본 · 덧 클립).
-     전환 = 클립 tin (앞 클립에서). 소리 효과는 없다 - 소리에는 사용자가 말하기 전에 필터를 걸지 않는다 (CLAUDE.md) */
+     전환 = 클립 tin (앞 클립에서). 소리 효과는 없다 - 소리에는 사용자가 말하기 전에 필터를 걸지 않는다 (docs/editing-rules.md) */
   var FXTYPE = 'application/x-kirinuki-fx', FXDRAG = null, PTAB = 'src', FXOPEN = {};
   var FXLIB = [
     { cat: '화면 효과', note: '', items: [

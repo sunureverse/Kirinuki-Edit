@@ -105,7 +105,7 @@ projects/_trash/             deleted projects
 
 Ctrl+S saves. Any change marks the project dirty and autosaves after 20 s of quiet.
 On page load `app.js` (`freshenFromDisk`) compares the folder's `savedAt` with the browser's copy. If the
-folder is newer (Claude exported a new edit), the project is read from disk. If they are equal, `diskAt` is still set. Skipping that
+folder is newer (Codex exported a new edit), the project is read from disk. If they are equal, `diskAt` is still set. Skipping that
 made every later save think the folder was newer, so autosave silently stopped after a page reload.
 
 **`save_project` merges `review` key by key.** Pipeline output (`kept`, `transcript`, `captions`,

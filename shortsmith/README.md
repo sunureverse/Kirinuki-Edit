@@ -11,7 +11,7 @@ drawn in React, GPU-encoded with ffmpeg. Built for streamer/VTuber highlight sho
   (about 10 s for a 30 s short on a laptop GPU).
 - **Presets are JSON.** One file describes the whole look - layered outlines and shadows, gradients, per-word accents,
   speaker-to-style rules, inserts - and per video you only write `fx.json`. Existing ASS looks port 1:1.
-- **Claude Code skill** included (`skills/edit-short`) for the judgment parts: what to keep, caption text, where effects go.
+- **Editing workflow** included (`skills/edit-short`) for the judgment parts: what to keep, caption text, where effects go.
 
 ## Requirements
 
@@ -27,12 +27,7 @@ npm install -g shortsmith        # or: git clone ... && npm install && npm link
 shortsmith doctor
 ```
 
-As a Claude Code plugin:
-
-```
-/plugin marketplace add <this repository URL>
-/plugin install shortsmith@shortsmith
-```
+For Codex editing, follow [`../AGENTS.md`](../AGENTS.md) and [the Codex guide](../docs/codex-editing.md).
 
 ## Quick start
 

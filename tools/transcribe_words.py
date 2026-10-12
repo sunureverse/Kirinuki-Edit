@@ -13,8 +13,8 @@
    "나 단미였구나 그럼" 이 통째로 빠졌다 - 조용한 소스(-37 LUFS)의 여린 말을 VAD 가 쉼으로 읽는다.
 2. 낱말 끝을 **소리가 있는 자리로 당긴다.** 편 폴더의 speech_map.json(말 덩이, 전대역 레벨)이 있으면 그것으로,
    없으면 여기서 전대역 -52/-60 dB 로 그린다. 낱말이 말 덩이 밖으로 0.15초 넘게 삐져나간 쪽만 깎는다
-   (무성 마찰음 ㅅ·ㅆ·ㅎ 은 레벨에 안 보여서 - CLAUDE.md 컷 규칙 3 - 조금 넘는 것은 둔다). 0.05초는 여유로 남긴다.
-재전사는 비싸다 (CLAUDE.md). ai_budget 이 막아 두었다 - 사용자 허락을 받고 ALLOW_AI=1 로 돌린다.
+   (무성 마찰음 ㅅ·ㅆ·ㅎ 은 레벨에 안 보여서 - docs/editing-rules.md 컷 규칙 3 - 조금 넘는 것은 둔다). 0.05초는 여유로 남긴다.
+재전사는 비싸다 (docs/editing-rules.md). ai_budget 이 막아 두었다 - 사용자 허락을 받고 ALLOW_AI=1 로 돌린다.
 """
 import argparse
 import io, json, os, re, sys, wave
@@ -28,7 +28,7 @@ parser.add_argument("--language", choices=("auto", "ko", "ja", "en"), default="a
 args = parser.parse_args()
 FROM = args.from_file
 if not FROM and os.environ.get("ALLOW_AI") != "1":
-    sys.exit("재전사는 막혀 있다 (CLAUDE.md: 재전사 기본 0회). 사용자 허락을 받은 뒤 ALLOW_AI=1 을 붙인다.")
+    sys.exit("재전사는 막혀 있다 (docs/editing-rules.md: 재전사 기본 0회). 사용자 허락을 받은 뒤 ALLOW_AI=1 을 붙인다.")
 
 import numpy as np
 

@@ -1,0 +1,2 @@
+# Store launchers consistently and check them out with Windows line endings.
+*.cmd text eol=crlf

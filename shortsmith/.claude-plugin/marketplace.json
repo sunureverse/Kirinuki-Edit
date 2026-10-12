@@ -1,5 +1,0 @@
-{
-  "name": "shortsmith",
-  "owner": { "name": "shortsmith" },
-  "plugins": [{ "name": "shortsmith", "source": "./", "description": "Edit vertical shorts with the shortsmith CLI" }]
-}
