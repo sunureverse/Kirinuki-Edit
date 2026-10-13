@@ -4,6 +4,8 @@
 
 **처음 사용한다면:** [Windows 설치 가이드](docs/windows-setup.md) → [Codex에 편집 맡기기](docs/codex-editing.md) 순서로 읽으세요.
 
+奏 방송 다시보기 다운로드: [3개씩 일괄 다운로드](docs/download-kanade.md). `download-kanade.cmd`를 실행하면 `D:\kirinuki_source\kanade`에 저장하고, 다시 실행할 때 완료된 영상은 건너뜁니다.
+
 ## 이 포크에서 달라진 점
 
 - AI 편집 버튼에서 원본을 서버에 저장하고 프로젝트·영상 경로가 포함된 **Codex 요청문**을 만듭니다. 요청문을 같은 저장소를 연 Codex 채팅에 붙여넣으면 편집을 맡길 수 있습니다.
