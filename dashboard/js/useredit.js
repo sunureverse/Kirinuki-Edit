@@ -237,6 +237,8 @@
     cont.style.width = w + 'px';
     drawRuler(w);
     CAPR = capRows();
+    var titleButton = D.$('#ueTitle');
+    if (titleButton) titleButton.disabled = !hasTitle();
     buildLanes();
     drawCaps();
     syncBoxEd();
@@ -305,6 +307,37 @@
   }
   /* 자막은 비디오 트랙에 (2026-10-03): 정한 트랙 (review.capTracks, 글로 찾음 · 새 자막은 id) 이 없으면 V2 부터 비어 있는 트랙 */
   var CAPR = [];
+  var TITLE_ID = 'title';
+  function titleCaption() {
+    var found = null;
+    ((R && R.captions) || []).forEach(function (c) {
+      if (/^(제목|title)$/.test((c.speaker || '').trim())) found = c;
+    });
+    return found;
+  }
+  function hasTitle() { return !!(SC && ((SC.style && SC.style.title) || SC.title || titleCaption())); }
+  function titleText() {
+    var c = titleCaption();
+    return c ? c.text || '' : (SC && SC.title && SC.title.text) || '';
+  }
+  function titlePlain(text) { return String(text || '').replace(/«(.+?)\|[A-Za-z]+»/g, '$1'); }
+  function titleWithMarks(text, original) {
+    var old = String(original || '').split('\n');
+    return text.split('\n').map(function (line, i) {
+      var before = old[i] || '';
+      if (line === titlePlain(before)) return before;
+      var whole = before.match(/^«(.+)\|([A-Za-z]+)»$/);
+      if (whole) return line ? '«' + line + '|' + whole[2] + '»' : '';
+      return line;
+    }).join('\n');
+  }
+  function selectTitle() {
+    if (!hasTitle()) return;
+    CSEL = TITLE_ID; SEL = {}; TSEL = null;
+    showPane('ins'); draw();
+    var vin = D.$('#ueVin'), va = D.$('#ueVA');
+    if (vin && va) { VS = Math.max(0, vin.offsetHeight - va.clientHeight); vscroll(); }
+  }
   function capKey(c) { return /^uc/.test(c.id) ? c.id : String(c.text || '').replace(/«(.+?)\|[A-Za-z]+»/g, '$1').trim(); }
   function capRows() {
     var caps = ((SC && SC.captions) || []).filter(function (c) { return c.e > c.s; }).slice().sort(function (a, b) { return a.s - b.s; });
@@ -316,6 +349,12 @@
     };
     caps.forEach(function (c) { var t = trackOf(c); if (t >= 2) out.push({ c: c, track: t }); });
     caps.forEach(function (c) { if (trackOf(c) >= 2) return; var n = 2; while (busy(n, c.s, c.e)) n++; out.push({ c: c, track: n }); });
+    if (hasTitle()) {
+      var top = 2;
+      out.forEach(function (r) { top = Math.max(top, r.track + 1); });
+      EX.forEach(function (x) { if (areaOf(x) === 'v') top = Math.max(top, x.track + 1); });
+      out.push({ c: { id: TITLE_ID, s: 0, e: total(), text: titleText() }, track: top });
+    }
     return out;
   }
   function capRow(id) { return CAPR.filter(function (r) { return r.c.id === id; })[0] || null; }
@@ -333,7 +372,8 @@
       var h = D.el('div', { class: 'ue-hd' + (n === 1 ? ' is-main' : '') });
       h.style.height = LANE_H + 'px';
       h.appendChild(D.el('b', { text: (a === 'v' ? 'V' : 'A') + n }));
-      h.appendChild(D.el('small', { text: n === 1 ? '원본' : a === 'v' ? '비디오' : '오디오' }));
+      var isTitle = a === 'v' && CAPR.some(function (r) { return r.track === n && r.c.id === TITLE_ID; });
+      h.appendChild(D.el('small', { text: isTitle ? '제목' : n === 1 ? '원본' : a === 'v' ? '비디오' : '오디오' }));
       return [l, h];
     };
     for (var n = nv; n >= 1; n--) { var p = lane('v', n); vin.appendChild(p[0]); hv.appendChild(p[1]); }
@@ -1530,7 +1570,15 @@
       el.dataset.cid = c.id;
       el.style.left = X(s) + 'px';
       el.style.width = Math.max(2, X(c.e - c.s)) + 'px';
-      el.appendChild(D.el('span', { text: String(c.text || '').replace(/«(.+?)\|[A-Za-z]+»/g, '$1') }));
+      el.appendChild(D.el('span', { text: (c.id === TITLE_ID ? '제목 · ' : '') + titlePlain(c.text) }));
+      if (c.id === TITLE_ID) {
+        el.classList.add('ue-title');
+        el.setAttribute('role', 'button'); el.setAttribute('tabindex', '0');
+        el.setAttribute('aria-label', '제목 캡션: ' + titlePlain(c.text));
+        el.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.stopPropagation(); selectTitle(); }
+        });
+      }
       ln.appendChild(el);
     });
   }
@@ -1705,6 +1753,7 @@
     var cap = ev.target.closest('.ue-cap');
     if (cap) {                               // 고르기 (시점 안 옮김) · 끌어 트랙 옮기기 (새 자막은 시각도)
       CSEL = cap.dataset.cid; SEL = {}; TSEL = null; showPane('ins');
+      if (CSEL === TITLE_ID) { selectTitle(); return ev.preventDefault(); }
       var cr0 = capRow(CSEL), uc0 = ucOf(CSEL);
       drag = { kind: 'cap', cid: CSEL, x0: cx(ev), y0: ev.clientY, area: 'v', moved: false, track: cr0 ? cr0.track : 2,
                at0: uc0 ? uc0.at : null, at: null, s0: cr0 ? cr0.c.s : 0, len: cr0 ? cr0.c.e - cr0.c.s : 0 };
@@ -1983,7 +2032,37 @@
     showPane('ins');
     changed();
   }
+  function titleInspector(ins) {
+    ins.appendChild(D.el('div', { class: 'ue-ins-h', text: '제목 캡션' }));
+    var label = D.el('label', { class: 'ue-field' });
+    label.appendChild(D.el('span', { text: '글' }));
+    var ta = D.el('textarea', { class: 'ue-cap-text', rows: 4, id: 'ueTitleText', placeholder: '제목 입력' });
+    ta.setAttribute('aria-label', '제목 글');
+    ta.value = titlePlain(titleText());
+    ta.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); commit(); ta.blur(); }
+    });
+    function commit() {
+      if (!R) return;
+      var original = titleText(), text = titleWithMarks(ta.value.trim(), original);
+      if (text === original) return;
+      remember();
+      var c = titleCaption();
+      if (!c) {
+        c = { s: 0, e: total(), speaker: '제목', kind: '기본', text: original };
+        (R.captions || (R.captions = [])).push(c);
+      }
+      if (c.orig == null) c.orig = original;
+      c.text = text; c.by = 'user'; R.unbaked = true;
+      D.touch(); refreshScene(); draw();
+    }
+    ta.addEventListener('change', commit);
+    ta.addEventListener('blur', commit);
+    label.appendChild(ta); ins.appendChild(label);
+    ins.appendChild(D.el('div', { class: 'ue-title-help', text: 'Shift+Enter로 줄바꿈 · Enter로 적용. 제목은 영상 전체에 표시됩니다.' }));
+  }
   function capInspector(ins) {
+    if (CSEL === TITLE_ID) { titleInspector(ins); return true; }
     if (/^uc/.test(CSEL || '')) { var uo = ucOf(CSEL); if (!uo) { CSEL = null; return false; } ucInspector(ins, uo); return true; }
     var sc = ((SC && SC.captions) || []).filter(function (c) { return c.id === CSEL; })[0];
     if (!sc) { CSEL = null; return false; }
@@ -2073,6 +2152,7 @@
     return c ? c.s + (t - c.at) : null;
   }
   function cutCaption() {                  // 고른 자막 줄의 원본 구간을 컷에서 뺀다 (줄도 같이 사라진다 - 남은 말이 0.1초 미만)
+    if (CSEL === TITLE_ID) { D.toast('제목은 인스펙터에서 글을 비우면 숨길 수 있습니다'); return; }
     if (/^uc/.test(CSEL || '')) {           // 새 자막은 그냥 지운다
       remember();
       R.userCaps = (R.userCaps || []).filter(function (o) { return 'uc' + o.id !== CSEL; });
@@ -2667,6 +2747,7 @@
       pool.addEventListener('drop', function (ev) { pool.classList.remove('is-drop'); if (!hasFiles(ev) || !ev.dataTransfer.files.length) return; ev.preventDefault(); setPTab('src'); uploadFiles(ev.dataTransfer.files); });
     }
     if (D.$('#ueAddCap')) D.$('#ueAddCap').addEventListener('click', addCaption);
+    if (D.$('#ueTitle')) D.$('#ueTitle').addEventListener('click', selectTitle);
     D.$$('#view-edit [data-ptab]').forEach(function (b) { b.addEventListener('click', function () { setPTab(b.dataset.ptab); }); });
     rInit();
     D.$$('#view-edit [data-tool]').forEach(function (b) { b.addEventListener('click', function () { setTool(b.dataset.tool); }); });

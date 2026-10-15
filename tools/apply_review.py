@@ -310,6 +310,17 @@ if ren and E.get("fx") and os.path.exists(E["fx"]):
     F = sub(F)
     shutil.copyfile(E["fx"], E["fx"] + ".bak")
     io.open(E["fx"], "w", encoding="utf-8").write(json.dumps(F, ensure_ascii=False, indent=1) + "\n")
+# 제목은 fx.title이 CSV보다 우선하므로 빈 제목까지 명시적으로 동기화한다.
+titles = [c for c in caps if (c.get("speaker") or "").strip() in ("제목", "title")]
+if titles and E.get("fx") and os.path.exists(E["fx"]):
+    F = json.load(io.open(E["fx"], encoding="utf-8"))
+    text = (titles[-1].get("text") or "").strip()
+    if F.get("title") != text:
+        if not os.path.exists(E["fx"] + ".bak"):
+            shutil.copyfile(E["fx"], E["fx"] + ".bak")
+        F["title"] = text
+        io.open(E["fx"], "w", encoding="utf-8").write(json.dumps(F, ensure_ascii=False, indent=1) + "\n")
+
 # 컷을 바꿨으면 연출 시각도 옮긴다: 숫자로 적힌 from / to / at 은 새 편집 시각으로, 말이 다 빠져 사라진 자막 줄을
 # 가리키던 것은 그 자리 시각(숫자)으로 바꾼다 - 안 그러면 build 가 "no caption" 으로 멈춘다
 moved = 0

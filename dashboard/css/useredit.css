@@ -307,6 +307,8 @@
 .ue-pool #ueAddFolder span{display:none}
 .ue-btn-txt{width:auto;padding:0 8px;gap:5px;display:inline-flex;align-items:center;font-size:12px}
 .ue-cap.is-new{background:#4a7fd0}
+.ue-cap.ue-title{background:#765c28;color:#fff0bf;cursor:pointer}
+.ue-title-help{font-size:12px;line-height:1.5;color:var(--ue-dim)}
 .ue-trans.is-sel{outline:2px solid var(--ue-sel);outline-offset:0}
 .ue-tr-h{position:absolute;top:0;bottom:0;width:6px;cursor:ew-resize;z-index:1}
 .ue-tr-l{left:-2px}.ue-tr-r{right:-2px}
