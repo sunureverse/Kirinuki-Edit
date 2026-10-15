@@ -15,6 +15,8 @@ Claude Code 없이 Codex 채팅에서 편집 판단과 파일 작업을 맡길 �
 
 ## Codex가 처리할 일
 
+- 하이라이트 조사와 후속 숏츠 제작은 [영상 분석 재사용](analysis-library.md)을 따릅니다. 대사·후보·확인 기록·사용자 선택을 영상별로 저장하고 새 분석 전에 재사용합니다. 일본어 신규 전사는 AGENTS.md에 지정된 기존 로컬 GPU 도구를 우선 사용합니다. 아래 CPU 전사 명령은 해당 GPU 도구를 대신 자동 실행하는 기본 경로가 아닙니다.
+
 - `AGENTS.md`, 작업 JSON과 Markdown, `projectFile`을 읽습니다. `mediaPaths`의 `group`은 편집 대상(`apply.target`), 추가 재료(`apply.assets`), 스타일 분석 원본(`analyze.src`)과 편집본(`analyze.edited`)을 구분합니다.
 - `style.analyze`는 실제 원본과 편집본을 비교해 지시문의 JSON 형식으로 스타일 규칙을 반환합니다. 사용자가 분석 결과 등록에 붙여넣습니다.
 - `style.apply`는 프리셋을 확인하고 `edit/<episode>/`에 `edit.json`, `captions.csv`, `fx.json`을 만듭니다. 영상에서 프레임을 추출해 구도를 확인하고, 실제 전사/음성을 근거로 구간과 자막을 정합니다. 자막 CSV 시각은 대시보드 내보내기와 호환되는 `HH:MM:SS.mmm` 형식을 사용합니다.
